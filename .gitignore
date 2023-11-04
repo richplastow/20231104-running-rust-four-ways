@@ -1,0 +1,17 @@
+# Rust and Cargo
+**/*.rs.bk
+Cargo.lock
+debug/
+target.zip
+target/
+
+# macOS and Windows
+.DS_Store
+desktop.ini
+
+# Node
+node_modules.zip
+node_modules/
+
+# VS Code
+.vscode/
