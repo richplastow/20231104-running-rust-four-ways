@@ -18,6 +18,16 @@ __Confirmed to work on:__
 
 ## Set up your machine
 
+### macOS
+
+TODO
+
+### Windows
+
+TODO
+
+### Linux
+
 TODO
 
 ## Create the app
