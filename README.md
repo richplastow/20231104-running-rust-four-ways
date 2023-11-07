@@ -70,12 +70,21 @@ Install these helpful extensions for developing Rust apps:
 
 TODO more code editors
 
-## Create the app's source file
+## Create the app's source files
 
 Move into your empty example-rust-app directory:  
 `cd ~/example-rust-app`
 
-Create a directory called 'src', and create the following file 'src/lib.rs':
+Create a directory called 'src', and create the following three Rust files,
+'src/greet.rs', 'src/lib.rs' and 'src/main.rs':
+
+```rs
+// src/utils.rs
+
+pub fn greet(who: &str) -> String {
+    return format!("Hello from Rust, {}!", who)
+}
+```
 
 ```rs
 // src/lib.rs
@@ -84,10 +93,36 @@ Create a directory called 'src', and create the following file 'src/lib.rs':
 // binding file. This line imports the wasm-bindgen crate.
 use wasm_bindgen::prelude::*;
 
+mod utils;
+use utils::greet;
+
 // wasm-pack needs exported functions to be prefixed `#[wasm_bindgen]`.
 #[wasm_bindgen]
 pub fn greet(who: &str) -> String {
-  return format!("Hello from Rust, {}!", who)
+    return format!("Hello from Rust, {}!", who)
+}
+```
+
+```rs
+// src/main.rs
+
+mod utils;
+use utils::greet;
+
+fn main() {
+    // Convert command line arguments to a vector.
+    let args: Vec<_> = std::env::args().collect();
+
+    // Use default text if no command line arguments exist.
+    // Otherwise, use the second string in `args` (the first option).
+    let text = if args.len() <= 1 {
+        "standalone binary app".to_string()
+    } else {
+        format!("{}", args[1])
+    };
+
+    // Print text to the console.
+    println!("{}", greet(&text))
 }
 ```
 
@@ -103,13 +138,13 @@ the old `require()`, so this property must be added to packages.json:
 Change the default `"test"` script from:  
 `    "test": "echo \"Error: no test specified\" && exit 1"`  
 to:  
-`    "test": "node scripts/run-all-tests.js"`
+`    "test": "node scripts/test-all.js"`
 
 Create a directory called 'scripts', and create a placeholder file
-'scripts/run-all-tests.rs':
+'scripts/test-all.rs':
 
 ```js
-// scripts/run-all-tests.rs
+// scripts/test-all.rs
 console.log('Tests will be run from here');
 ```
 
@@ -119,11 +154,136 @@ Check that it's working:
 
 ## Build and test the standalone binary
 
-TODO
+Create a directory called 'dist'.
 
-## Build and test the Node.js 'wrapper' app
+Inside that, create a directory called '1-standalone-binary'.
 
-TODO
+Next, create the JavaScript file 'scripts/build-1-standalone-binary.js', which
+will compile the standalone binary app:
+
+```js
+// scripts/build-1-standalone-binary.js
+
+import child_process from 'node:child_process';
+
+try {
+    const result = child_process.execSync(
+        'rustc ' + // the Rust compiler
+        'src/main.rs ' + // the main source file
+        '-o dist/1-standalone-binary/greet' // the compiled binary app
+    ).toString();
+    console.log(result || 'rustc succeeded');
+} catch (err) { console.error(err.message); process.exit(1) }
+```
+
+Create another JavaScript file 'scripts/test-1-standalone-binary.js', which will
+run a couple of unit tests on the standalone binary app:
+
+```js
+// scripts/test-1-standalone-binary.js
+
+import { equal } from 'node:assert';
+import child_process from 'node:child_process';
+
+try {
+    const result1 = child_process.execSync(
+        './dist/1-standalone-binary/greet' // the compiled binary app
+    ).toString();
+    equal(result1, 'Hello from Rust, standalone binary app!\n');
+
+    const result2 = child_process.execSync(
+        './dist/1-standalone-binary/greet' +
+        ' "console arguments user" extra args'
+    ).toString();
+    equal(result2, 'Hello from Rust, console arguments user!\n');
+
+    console.log('Both 1-standalone-binary tests passed');
+} catch (err) { console.error(err); process.exit(1) }
+```
+
+Back in 'packages.json', add two new scripts above `"test"`:  
+`    "build:1": "node scripts/build-1-standalone-binary.js",`  
+`    "test:1": "node scripts/test-1-standalone-binary.js",`
+
+Compile the standalone binary app:  
+`npm run build:1`  
+...you should see `"rustc succeeded"` logged.
+
+Run the unit tests on it:  
+`npm run test:1`  
+...you should see `"Both 1-standalone-binary/greet tests passed"` logged.
+
+## Create and test the Node.js 'wrapper' app
+
+Create a second directory inside 'dist', called '2-node-wrapper'.
+
+There's no build step this time, because the Node.js 'wrapper' app just makes
+use of the [compiled standalone binary](#build-and-test-the-standalone-binary)
+app. This app is divided into two Node files:
+
+```js
+// dist/2-node-wrapper/cli.js
+
+import { wrapper } from './wrapper.js';
+
+console.log(wrapper(process.argv[2]));
+```
+
+```js
+// dist/2-node-wrapper/wrapper.js
+
+import child_process from 'node:child_process';
+
+export const wrapper = (text) => {
+    try {
+        const result = child_process.execSync(
+            './dist/1-standalone-binary/greet' + // the compiled binary app
+            ` "${text || 'Node.js wrapper app'}"`
+        ).toString().trim();
+        return result || '[no output]';
+    } catch (err) { console.error(err.message); process.exit(1) }
+};
+```
+
+Create 'scripts/test-2-node-wrapper.js', which will run unit tests on the
+wrapper.js module, and also run integration tests on the cli.js app:
+
+```js
+// scripts/test-2-node-wrapper.js
+
+import { equal } from 'node:assert';
+import child_process from 'node:child_process';
+
+import { wrapper } from '../dist/2-node-wrapper/wrapper.js';
+
+try {
+    const result1 = wrapper();
+    equal(result1, 'Hello from Rust, Node.js wrapper app!');
+
+    const result2 = wrapper('passed to imported module');
+    equal(result2, 'Hello from Rust, passed to imported module!');
+
+    const result3 = child_process.execSync(
+        'node ./dist/2-node-wrapper/cli.js'
+    ).toString();
+    equal(result3, 'Hello from Rust, Node.js wrapper app!\n');
+
+    const result4 = child_process.execSync(
+        'node ./dist/2-node-wrapper/cli.js' +
+        ' "passed to Node CLI app" extra args'
+    ).toString();
+    equal(result4, 'Hello from Rust, passed to Node CLI app!\n');
+
+    console.log('All four 2-node-wrapper tests passed');
+} catch (err) { console.error(err); process.exit(1) }
+```
+
+Back in 'packages.json', add a new script above `"test"`:  
+`    "test:2": "node scripts/test-2-node-wrapper.js",`
+
+Run the unit tests:  
+`npm run test:2`  
+...you should see `"All four 2-node-wrapper/greet.js tests passed"` logged.
 
 ## Build for the web browser, and test
 
@@ -133,6 +293,10 @@ TODO
 
 TODO
 
-## Combine the four build and test processes
+## Combine the three build steps into a single 'build-all.js' file
+
+TODO
+
+## Combine the four unit test files into a single 'test-all.js' file
 
 TODO
