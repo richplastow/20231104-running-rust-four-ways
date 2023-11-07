@@ -150,7 +150,7 @@ console.log('Tests will be run from here');
 
 Check that it's working:  
 `npm test`  
-...you should see `"Tests will be run from here"` logged.
+...you should see `"Tests will be run from here"`
 
 ## Build and test the standalone binary
 
@@ -192,8 +192,8 @@ try {
     equal(result1, 'Hello from Rust, standalone binary app!\n');
 
     const result2 = child_process.execSync(
-        './dist/1-standalone-binary/greet' +
-        ' "console arguments user" extra args'
+        './dist/1-standalone-binary/greet ' +
+        '"console arguments user" extra args'
     ).toString();
     equal(result2, 'Hello from Rust, console arguments user!\n');
 
@@ -207,11 +207,11 @@ Back in 'packages.json', add two new scripts above `"test"`:
 
 Compile the standalone binary app:  
 `npm run build:1`  
-...you should see `"rustc succeeded"` logged.
+...you should see `"rustc succeeded"`
 
 Run the unit tests on it:  
 `npm run test:1`  
-...you should see `"Both 1-standalone-binary/greet tests passed"` logged.
+...you should see `"Both 1-standalone-binary/greet tests passed"`
 
 ## Create and test the Node.js 'wrapper' app
 
@@ -237,8 +237,8 @@ import child_process from 'node:child_process';
 export const wrapper = (text) => {
     try {
         const result = child_process.execSync(
-            './dist/1-standalone-binary/greet' + // the compiled binary app
-            ` "${text || 'Node.js wrapper app'}"`
+            './dist/1-standalone-binary/greet ' + // the compiled binary app
+            `"${text || 'Node.js wrapper app'}"`
         ).toString().trim();
         return result || '[no output]';
     } catch (err) { console.error(err.message); process.exit(1) }
@@ -283,11 +283,166 @@ Back in 'packages.json', add a new script above `"test"`:
 
 Run the unit tests:  
 `npm run test:2`  
-...you should see `"All four 2-node-wrapper/greet.js tests passed"` logged.
+...you should see `"All four 2-node-wrapper/greet.js tests passed"`
 
 ## Build for the web browser, and test
 
-TODO
+Create another directory inside 'dist', called '3-web-browser-wasm'.
+
+The `#[wasm_bindgen]` in 'src/lib.rs' means that a 'Cargo.toml' file must be
+created. It has the same content, whether you're targeting `nodejs` or `web`:
+
+```toml
+# Cargo.toml
+
+[package]
+name = "example-rust-app"
+version = "1.0.0"
+authors = ["Your Name <your@name.com>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+```
+
+The first time `wasm-pack build ...` is run, a 'Cargo.lock' file will be
+generated alongside 'Cargo.toml', and `wasm-bindgen` and its sub-dependencies
+will be installed in the 'target/' directory.
+
+Next, create the JavaScript file 'scripts/build-3-web-browser-wasm.js', which
+will generate a WebAssembly app targeting web browsers:
+
+```js
+// scripts/build-3-web-browser-wasm.js
+
+import child_process from 'node:child_process';
+import { rmSync } from 'node:fs';
+
+try {
+    // Delete any files generated during a previous build.
+    '.gitignore|greet_bg.wasm|greet_bg.wasm.d.ts|greet.d.ts|greet.js'
+        .split('|').forEach(filename => rmSync(
+            `dist/3-web-browser-wasm/${filename}`,
+            { force: true }, // don't stop if the file doesn't exist
+        ));
+
+    // Generate a WebAssembly app targeting web browsers.
+    const result = child_process.execSync(
+        'wasm-pack build ' + // generate the .js, .ts and .wasm files
+        '--target web ' + // set the target environment
+        '--no-pack ' + // do not generate a 'package.json' file
+        '--out-dir dist/3-web-browser-wasm/ ' + // the output directory
+        '--out-name greet' // basis for naming the generated files
+    ).toString();
+    console.log(result);
+
+} catch (err) { console.error(err.message); process.exit(1) }
+```
+
+Create another JavaScript file 'scripts/test-3-web-browser-wasm.js', which will
+start a localhost server on port 1234 for testing the app:
+
+```js
+// scripts/test-3-web-browser-wasm.js
+
+import { readFileSync } from 'node:fs';
+import http from 'node:http';
+
+const INDEX_HTML = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>test-3-web-browser-wasm</title>
+    <script type="module" src="/script.js"></script>
+    <style>
+      body { background:#111; color:#ccc;
+        font: 18px/24px Arial, sans-serif;
+        transition: background-color 1s, color 1s; }
+      body.fail { background:#211; color:#fcc; }
+      body.pass { background:#121; color:#cfc; }
+    </style>
+  </head>
+  <body>
+    <h1>test-3-web-browser-wasm</h1>
+    <pre></pre>
+  </body>
+</html>
+`;
+
+const DIST = './dist/3-web-browser-wasm';
+
+const SCRIPT_JS = `
+(async function() {
+    const wasm = await import('./greet.js');
+    await wasm.default('./greet_bg.wasm');
+    const $log = document.querySelector('pre');
+    const result1 = wasm.greet('');
+    $log.innerText = \`greet("") -> "\${result1}" \`;
+    const pass1 = result1 === 'Hello from Rust, wasm app!';
+    $log.innerText += pass1 ? '✅' : '❌';
+    const result2 = wasm.greet('web browser wasm');
+    $log.innerText += \`\\ngreet("web browser wasm") -> "\${result2}" \`;
+    const pass2 = result2 === 'Hello from Rust, web browser wasm!';
+    $log.innerText += pass2 ? '✅' : '❌';
+    document.body.className = pass1 && pass2 ? 'pass' : 'fail';
+    if (pass1 && pass2) $log.innerText +=
+        '\\n\\nBoth 3-web-browser-wasm tests passed';
+})();
+`;
+
+try {
+    http.createServer((req, res) => {
+        switch (req.url) {
+            case '/':
+            case '/index.html':
+                res.writeHead(200, { 'Content-Type': 'text/html' });
+                res.end(INDEX_HTML);
+                break;
+            case '/greet.js':
+                res.writeHead(200, { 'Content-Type': 'text/javascript' });
+                res.end(readFileSync(`${DIST}${req.url}`));
+                break;
+            case '/greet_bg.wasm':
+                res.writeHead(200, { 'Content-Type': 'application/wasm' });
+                res.end(readFileSync(`${DIST}${req.url}`));
+                break;
+            case '/script.js':
+                res.writeHead(200, { 'Content-Type': 'text/javascript' });
+                res.end(SCRIPT_JS);
+                break;
+            default:
+                res.writeHead(404, { 'Content-Type': 'text/plain' });
+                res.end('Not Found');
+        }
+    }).listen(1234);
+    console.log('Open http://localhost:1234/ to run web browser wasm tests.');
+    console.log('Press ctrl-c to close this server.');
+} catch (err) { console.error(err); process.exit(1) }
+```
+
+Back in 'packages.json', add two new scripts above `"test"`:  
+`    "build:3": "node scripts/build-3-web-browser-wasm.js",`  
+`    "test:3": "node scripts/test-3-web-browser-wasm.js",`
+
+Compile the web browser wasm app:  
+`npm run build:3`  
+...you should see `[INFO]: Your wasm pkg is ready ...`
+
+Start the local server:  
+`npm run test:3`  
+...you should see:  
+`Open http://localhost:1234/ to run web browser wasm tests.`  
+`Press ctrl-c to close this server.`
+
+The browser should show the test results, and you should see:  
+`Both 3-web-browser-wasm tests passed`
+
+Back on the command line, hold down the 'control' key and press 'c' to stop
+running the `test:3` server.
 
 ## Build and test the Node.js WebAssembly app
 
