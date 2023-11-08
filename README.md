@@ -218,8 +218,8 @@ Run the unit tests on it:
 Create a second directory inside 'dist', called '2-node-wrapper'.
 
 There's no build step this time, because the Node.js 'wrapper' app just makes
-use of the [compiled standalone binary](#build-and-test-the-standalone-binary)
-app. This app is divided into two Node files:
+use of the [compiled standalone binary.](#build-and-test-the-standalone-binary)
+The Node wrapper app is divided into two Node files:
 
 ```js
 // dist/2-node-wrapper/cli.js
