@@ -313,7 +313,7 @@ generated alongside 'Cargo.toml', and `wasm-bindgen` and its sub-dependencies
 will be installed in the 'target/' directory.
 
 Next, create the JavaScript file 'scripts/build-3-web-browser-wasm.js', which
-will generate a WebAssembly app targeting web browsers:
+will be used to generate a WebAssembly app targeting web browsers:
 
 ```js
 // scripts/build-3-web-browser-wasm.js
@@ -351,16 +351,17 @@ start a localhost server on port 1234 for testing the app:
 import { readFileSync } from 'node:fs';
 import http from 'node:http';
 
-const INDEX_HTML = `
+const indexHtml = `
+<!-- /index.html -->
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
     <title>test-3-web-browser-wasm</title>
     <script type="module" src="/script.js"></script>
     <style>
       body { background:#111; color:#ccc;
-        font: 18px/24px Arial, sans-serif;
+        font: 18px/30px Arial, sans-serif;
         transition: background-color 1s, color 1s; }
       body.fail { background:#211; color:#fcc; }
       body.pass { background:#121; color:#cfc; }
@@ -373,50 +374,88 @@ const INDEX_HTML = `
 </html>
 `;
 
-const DIST = './dist/3-web-browser-wasm';
+// Convert the .wasm file to a Data URL string. This will be used to
+// test an alternative way of loading WebAssembly into JavaScript.
+const wasm = readFileSync(`./dist/3-web-browser-wasm/greet_bg.wasm`);
+const encoded = Buffer.from(wasm, 'binary').toString('base64');
+const chunks = encoded.split('').reduce((acc, char, i) => i % 1000
+  ? (acc[acc.length-1] = acc.at(-1)+char) && acc : [...acc, [char]], []);
+const dataUrl = `data:application/wasm;base64,\n${chunks.join('\n')}`;
 
-const SCRIPT_JS = `
+const scriptJs = `
+// /script.js
 (async function() {
-    const wasm = await import('./greet.js');
-    await wasm.default('./greet_bg.wasm');
-    const $log = document.querySelector('pre');
-    const result1 = wasm.greet('');
-    $log.innerText = \`greet("") -> "\${result1}" \`;
-    const pass1 = result1 === 'Hello from Rust, wasm app!';
-    $log.innerText += pass1 ? '✅' : '❌';
-    const result2 = wasm.greet('web browser wasm');
-    $log.innerText += \`\\ngreet("web browser wasm") -> "\${result2}" \`;
-    const pass2 = result2 === 'Hello from Rust, web browser wasm!';
-    $log.innerText += pass2 ? '✅' : '❌';
-    document.body.className = pass1 && pass2 ? 'pass' : 'fail';
-    if (pass1 && pass2) $log.innerText +=
-        '\\n\\nBoth 3-web-browser-wasm tests passed';
+  const $log = document.querySelector('pre');
+  const log = (message) => $log.innerText += \`\${message}\`;
+  log("'dist/3-web-browser-wasm/greet_bg.wasm' is ${wasm.length} bytes\\n");
+
+  try {
+
+    // Load the WebAssembly code from file, in the usual way.
+    const standard = await import('./greet.js?standard');
+    await standard.default('./greet_bg.wasm');
+    const result1 = standard.greet('');
+    log(\`\\nstandard.greet("") -> "\${result1}" \`);
+    const ok1 = result1 === 'Hello from Rust, wasm app!';
+    log(ok1 ? '✅' : '❌');
+    const result2 = standard.greet('web browser (standard)');
+    log(\`\\nstandard.greet("web browser (standard)") -> "\${result2}" \`);
+    const ok2 = result2 === 'Hello from Rust, web browser (standard)!';
+    log(ok2 ? '✅' : '❌');
+
+    // Use the Data URL version of the WebAssembly code.
+    const dataUrl = await import('./greet.js?dataUrl');
+    await dataUrl.default(\`
+${dataUrl}
+    \`);
+    const result3 = dataUrl.greet('');
+    log(\`\\ndataUrl.greet("") -> "\${result3}" \`);
+    const ok3 = result3 === 'Hello from Rust, wasm app!';
+    log(ok3 ? '✅' : '❌');
+    const result4 = dataUrl.greet('web browser (dataUrl)');
+    log(\`\\ndataUrl.greet("web browser (dataUrl)") -> "\${result4}" \`);
+    const ok4 = result4 === 'Hello from Rust, web browser (dataUrl)!';
+    log(ok4 ? '✅' : '❌');
+
+    document.body.className = ok1 && ok2 && ok3 && ok4 ? 'pass' : 'fail';
+    if (ok1 && ok2 && ok3 && ok4)
+      log('\\n\\nAll four 3-web-browser-wasm tests passed');
+
+  } catch (err) {
+    log(\`\\n\\nError:\\n\${err.message}\\n(See browser console)\`);
+    document.body.className = 'fail';
+    console.error(err);
+  }
 })();
 `;
+
+const fromDist = (filename) =>
+    readFileSync(`./dist/3-web-browser-wasm${filename}`)
+
+const respond = (res, status, mime, content) => {
+    res.writeHead(status, { 'Content-Type': mime });
+    res.end(content);
+}
 
 try {
     http.createServer((req, res) => {
         switch (req.url) {
             case '/':
             case '/index.html':
-                res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(INDEX_HTML);
+                respond(res, 200, 'text/html', indexHtml);
                 break;
-            case '/greet.js':
-                res.writeHead(200, { 'Content-Type': 'text/javascript' });
-                res.end(readFileSync(`${DIST}${req.url}`));
+            case '/greet.js?standard':
+            case '/greet.js?dataUrl':
+                respond(res, 200, 'text/javascript', fromDist('/greet.js'));
                 break;
             case '/greet_bg.wasm':
-                res.writeHead(200, { 'Content-Type': 'application/wasm' });
-                res.end(readFileSync(`${DIST}${req.url}`));
+                respond(res, 200, 'application/wasm', fromDist(req.url));
                 break;
             case '/script.js':
-                res.writeHead(200, { 'Content-Type': 'text/javascript' });
-                res.end(SCRIPT_JS);
+                respond(res, 200, 'text/javascript', scriptJs);
                 break;
             default:
-                res.writeHead(404, { 'Content-Type': 'text/plain' });
-                res.end('Not Found');
+                respond(res, 200, 'text/plain', 'Not Found');
         }
     }).listen(1234);
     console.log('Open http://localhost:1234/ to run web browser wasm tests.');
@@ -439,7 +478,7 @@ Start the local server:
 `Press ctrl-c to close this server.`
 
 The browser should show the test results, and you should see:  
-`Both 3-web-browser-wasm tests passed`
+`All four 3-web-browser-wasm tests passed`
 
 Back on the command line, hold down the 'control' key and press 'c' to stop
 running the `test:3` server.
