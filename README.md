@@ -211,7 +211,7 @@ Compile the standalone binary app:
 
 Run the unit tests on it:  
 `npm run test:1`  
-...you should see `"Both 1-standalone-binary/greet tests passed"`
+...you should see `"Both 1-standalone-binary tests passed"`
 
 ## Create and test the Node.js 'wrapper' app
 
@@ -485,7 +485,80 @@ running the `test:3` server.
 
 ## Build and test the Node.js WebAssembly app
 
-TODO
+Create the fourth output-directory in 'dist', called '4-node-wasm'.
+
+Then create 'scripts/build-4-node-wasm.js', which will be used to generate
+a WebAssembly app targeting Node.js:
+
+```js
+// scripts/build-4-node-wasm.js
+
+import child_process from 'node:child_process';
+import { renameSync, rmSync } from 'node:fs';
+
+const outDir = 'dist/4-node-wasm/';
+
+try {
+    // Delete any files generated during a previous build.
+    '.gitignore|greet_bg.wasm|greet.cjs|greet_bg.wasm.d.ts|greet.d.ts'
+        .split('|').forEach(filename => rmSync(
+            `${outDir}${filename}`,
+            { force: true }, // don't stop if the file doesn't exist
+        ));
+
+    // Generate a WebAssembly app targeting Node.js.
+    const result = child_process.execSync(
+        'wasm-pack build ' + // generate the .js, .ts and .wasm files
+        '--target nodejs ' + // set the target environment
+        '--no-pack ' + // do not generate a 'package.json' file
+        `--out-dir ${outDir} ` + // the output directory
+        '--out-name greet' // basis for naming the generated files
+    ).toString();
+    console.log(result);
+
+    // This project has set `"type": "module"` in 'package.json',
+    // so rename 'greet.js' (which uses `require()`) to 'greet.cjs'.
+    renameSync(`${outDir}greet.js`, `${outDir}greet.cjs`);
+
+} catch (err) { console.error(err.message); process.exit(1) }
+```
+
+Create 'scripts/test-4-node-wasm.js', which will run tests on 'greet.cjs'
+and 'greet_bg.wasm':
+
+```js
+// scripts/test-4-node-wasm.js
+
+import { equal } from 'node:assert';
+import dist from '../dist/4-node-wasm/greet.cjs';
+const { greet } = dist;
+
+try {
+    // Check that WebAssembly is supported in the running version of Node.
+    if (typeof WebAssembly !== 'object') throw Error(
+      `typeof WebAssembly is '${typeof WebAssembly}' not 'object'`);
+
+    const result1 = greet('');
+    equal(result1, 'Hello from Rust, wasm app!');
+
+    const result2 = greet('Node (standard)');
+    equal(result2, 'Hello from Rust, Node (standard)!');
+
+    console.log('Both 4-node-wasm tests passed');
+} catch (err) { console.error(err); process.exit(1) }
+```
+
+Back in 'packages.json', add two new scripts above `"test"`:  
+`    "build:4": "node scripts/build-4-node-wasm.js",`  
+`    "test:4": "node scripts/test-4-node-wasm.js",`
+
+Compile the standalone binary app:  
+`npm run build:4`  
+...you should see `[INFO]: Your wasm pkg is ready ...`
+
+Run the unit tests on it:  
+`npm run test:4`  
+...you should see `"Both 4-node-wasm tests passed"`
 
 ## Combine the three build steps into a single 'build-all.js' file
 
