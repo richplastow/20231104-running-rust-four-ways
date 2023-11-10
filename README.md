@@ -8,8 +8,8 @@ After completing the steps below, you'll be able to run a Rust app:
 
 1. As a standalone binary, compiled for the current machine
 2. From a Node.js 'wrapper' app, using `child_process.exec()`
-3. In a web browser, using WebAssembly (wasm)
-4. In Node.js again, this time using WebAssembly (wasm)
+3. In a web browser, using Rust compiled to WebAssembly (wasm)
+4. In Node.js again, this time using WebAssembly
 
 __Confirmed to work on:__
 
@@ -81,8 +81,8 @@ Create a directory called 'src', and create the following three Rust files,
 ```rs
 // src/utils.rs
 
-pub fn greet(who: &str) -> String {
-    return format!("Hello from Rust, {}!", who)
+pub fn greet(text: &str) -> String {
+    return format!("Hello from Rust, {}!", text)
 }
 ```
 
@@ -94,12 +94,18 @@ pub fn greet(who: &str) -> String {
 use wasm_bindgen::prelude::*;
 
 mod utils;
-use utils::greet;
+use utils::greet as greet_util;
 
 // wasm-pack needs exported functions to be prefixed `#[wasm_bindgen]`.
 #[wasm_bindgen]
-pub fn greet(who: &str) -> String {
-    return format!("Hello from Rust, {}!", who)
+pub fn greet(text: &str) -> String {
+
+    // Use default text if no `text` argument exists.
+    if text == "" {
+        return format!("{}", greet_util("wasm app"))
+    } else {
+        return format!("{}", greet_util(&text))
+    };
 }
 ```
 
@@ -126,13 +132,13 @@ fn main() {
 }
 ```
 
-## Begin setting up the 'packages.json' file
+## Begin setting up the 'package.json' file
 
-Create the default packages.json file:  
+Generate a fairly minimal 'package.json' file:  
 `npm init -y`
 
 In this project, the JavaScript run by Node will be using `import` instead of
-the old `require()`, so this property must be added to packages.json:  
+the old `require()`, so this property must be added to 'package.json':  
 `  "type": "module",`
 
 Change the default `"test"` script from:  
@@ -201,7 +207,7 @@ try {
 } catch (err) { console.error(err); process.exit(1) }
 ```
 
-Back in 'packages.json', add two new scripts above `"test"`:  
+Back in 'package.json', add two new scripts above `"test"`:  
 `    "build:1": "node scripts/build-1-standalone-binary.js",`  
 `    "test:1": "node scripts/test-1-standalone-binary.js",`
 
@@ -278,7 +284,7 @@ try {
 } catch (err) { console.error(err); process.exit(1) }
 ```
 
-Back in 'packages.json', add a new script above `"test"`:  
+Back in 'package.json', add a new script above `"test"`:  
 `    "test:2": "node scripts/test-2-node-wrapper.js",`
 
 Run the unit tests:  
@@ -463,7 +469,7 @@ try {
 } catch (err) { console.error(err); process.exit(1) }
 ```
 
-Back in 'packages.json', add two new scripts above `"test"`:  
+Back in 'package.json', add two new scripts above `"test"`:  
 `    "build:3": "node scripts/build-3-web-browser-wasm.js",`  
 `    "test:3": "node scripts/test-3-web-browser-wasm.js",`
 
@@ -534,21 +540,21 @@ import dist from '../dist/4-node-wasm/greet.cjs';
 const { greet } = dist;
 
 try {
-    // Check that WebAssembly is supported in the running version of Node.
+    // Check that WebAssembly is supported in the current version of Node.
     if (typeof WebAssembly !== 'object') throw Error(
       `typeof WebAssembly is '${typeof WebAssembly}' not 'object'`);
 
     const result1 = greet('');
     equal(result1, 'Hello from Rust, wasm app!');
 
-    const result2 = greet('Node (standard)');
-    equal(result2, 'Hello from Rust, Node (standard)!');
+    const result2 = greet('Node.js WebAssembly app');
+    equal(result2, 'Hello from Rust, Node.js WebAssembly app!');
 
     console.log('Both 4-node-wasm tests passed');
 } catch (err) { console.error(err); process.exit(1) }
 ```
 
-Back in 'packages.json', add two new scripts above `"test"`:  
+Back in 'package.json', add two new scripts above `"test"`:  
 `    "build:4": "node scripts/build-4-node-wasm.js",`  
 `    "test:4": "node scripts/test-4-node-wasm.js",`
 
