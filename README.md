@@ -1,13 +1,13 @@
 # Running Rust Four Ways
 
-__A minimal example Rust app, that can be run in four different ways__
+__A minimal example Rust app, that can be run in four different ways.__
 
 __4th November 2023__
 
 After completing the steps below, you'll be able to run a Rust app:
 
-1. As a standalone binary, compiled for the current machine
-2. From a Node.js 'wrapper' app, using `child_process.exec()`
+1. As a standalone binary, compiled for your current platform
+2. From a Node.js 'wrapper' app, using `child_process.execSync()`
 3. In a web browser, using Rust compiled to WebAssembly (wasm)
 4. In Node.js again, this time using WebAssembly
 
@@ -26,32 +26,64 @@ __Confirmed to work on:__
    to open it
 2. Check that Git is installed:  
    `git --version`  
-   If you see `command not found: git`,
+   If you see `command not found: git`  
    install it from [git-scm.com.](https://git-scm.com/download/mac)
-3. Check that Node is installed:  
+3. Check that Node.js is installed:  
    `node --version`  
-   If you see `command not found: node`, instead of installing Node directly,
+   If you see `command not found: node`  
+   instead of installing Node directly,
    [install `nvm`](https://github.com/nvm-sh/nvm#installing-and-updating) and:  
-   `nvm install stable`  
-   After that, `node --version` should work
+   `nvm install --lts`  
+   After that, `node --version` should show the current 'long term support'
+   version of Node
 4. Check that NPM is installed:  
    `npm --version`  
    This should have been installed at the same time as Node
 5. Check that the Rust compiler and associated utilities are installed:  
    `rustup --version`  
-   If you see `command not found: rustup`, run the
-   [`rustup` installer,](https://www.rust-lang.org/tools/install) and choose:  
+   If you see `command not found: rustup`  
+   [install `rustup`,](https://www.rust-lang.org/tools/install) and choose:  
    `1) Proceed with installation (default)`
 6. Check that the `wasm-pack` is installed:  
    `wasm-pack --version`  
-   If you see `command not found: wasm-pack`, run the
-   [`wasm-pack` installer](https://rustwasm.github.io/wasm-pack/installer/)
-7. Create a directory to build the example Rust app:  
-   `mkdir ~/example-rust-app`
+   If you see `command not found: wasm-pack`  
+   [install `wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
 
 ### Windows
 
-TODO
+If you would prefer to use 'Windows Subsystem for Linux' (wsl), follow the
+instructions in the [Linux section](#linux) below. Otherwise, you can use
+PowerShell:
+
+1. Open Windows PowerShell:  
+   Click the Windows icon (usually in the bottom left corner of the screen),
+   type 'powershell', and click the 'Windows PowerShell' app
+2. Check that Git is installed:  
+   `git --version`  
+   If you see `git : The term 'git' is not recognized ...`  
+   install it from [git-scm.com.](https://git-scm.com/download/win)
+3. Check that Node.js is installed:  
+   `node --version`  
+   If you see `node : The term 'node' is not recognized ...`  
+   instead of installing Node directly, [install `nvm-windows`
+   ](https://github.com/coreybutler/nvm-windows#installation--upgrades) and:  
+   `nvm install lts`  
+   `nvm use lts`  
+   After that, `node --version` should show the current 'long term support'
+   version of Node
+4. Check that NPM is installed:  
+   `npm --version`  
+   This should have been installed at the same time as Node
+5. Check that the Rust compiler and associated utilities are installed:  
+   `rustup --version`  
+   If you see `rustup : The term 'rustup' is not recognized ...`  
+   [install `rustup`,](https://www.rust-lang.org/tools/install) and (possibly
+   after installing Visual Studio for the C++ linker and libraries) choose:  
+   `1) Proceed with installation (default)`
+6. Check that the `wasm-pack` is installed:  
+   `wasm-pack --version`  
+   If you see `wasm-pack : The term 'wasm-pack' is not recognized ...`  
+   [install `wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
 
 ### Linux
 
@@ -70,13 +102,77 @@ Install these helpful extensions for developing Rust apps:
 
 TODO more code editors
 
-## Create the app's source files
+## Compile the example Rust library, and test it in JavaScript
 
-Move into your empty example-rust-app directory:  
+For an in-depth look at the different ways that Rust code can be integrated into
+a JavaScript app, jump to the next section, [Recreate this repo, step-by-step.](
+#recreate-this-repo-step-by-step)
+
+But if that's [tl;dr,](https://merriam-webster.com/dictionary/TL%3BDR) or if you
+just want to check that everything's working:
+
+`npm run build`  
+...you should see `Done! All three builds succeeded`
+
+Run the test-all script:  
+`npm test`  
+...you should see `Done! All three command-line tests passed`,  
+followed by instructions for manually running the browser tests.
+
+## Recreate this repo, step-by-step
+
+This repo is intended to be a useful reference - a jumping-off point for your
+own projects. If you follow the steps outlined below, you will gain a deeper
+understanding of the different ways your JavaScript app can run Rust code.
+
+### Start with a simple JavaScript helper
+
+Make a directory to build the example Rust app, and 'change directory' into it:  
+`mkdir ~/example-rust-app`  
 `cd ~/example-rust-app`
 
+Assuming you are using VS Code, there's a single command to create a blank file
+in a new folder and start editing it:  
+`code helpers/ansi.js`
+
+Paste the following JavaScript into the blank 'ansi.js' file:
+
+```js
+// helpers/ansi.js
+
+/** Makes functions which wrap text in ANSI styling.
+ * @param {number} bg  An ANSI 256-color code */
+const ansi = (bg) => (text) => `\x1b[31;97;48;5;${bg}m ${text} \x1b[0m `;
+
+/** Wraps text in a red-background ANSI code, followed by a space.
+ * @param {string} text */
+export const red = ansi(52);
+
+/** Wraps text in a green-background ANSI code, followed by a space.
+ * @param {string} text */
+export const green = ansi(22);
+
+/** Wraps text in a blue-background ANSI code, followed by a space.
+ * @param {string} text */
+export const blue = ansi(18);
+```
+
+You should see that VS Code highlights the code syntax. Hovering your mouse over
+the `red` function name should show that VS Code parses the JSDoc comments.
+
+After saving the file, you should see it appear in your OS's filesystem, and
+also the filesystem tab of VS Code's 'Explorer' sidebar.
+
+Check that a recent enough version of Node.js is installed, and check that it
+can execute your .js files:  
+`node -e "import('./helpers/ansi.js').then(({red})=>console.log(red('A')))"`  
+...you should see a white letter `"A"` on a dark red background.
+
+### Create the app's source files
+
 Create a directory called 'src', and create the following three Rust files,
-'src/greet.rs', 'src/lib.rs' and 'src/main.rs':
+'src/utils.rs', 'src/lib.rs' and 'src/main.rs':  
+`code src/main.rs src/lib.rs src/utils.rs`
 
 ```rs
 // src/utils.rs
@@ -132,13 +228,14 @@ fn main() {
 }
 ```
 
-## Begin setting up the 'package.json' file
+### Begin setting up the 'package.json' file
 
 Generate a fairly minimal 'package.json' file:  
 `npm init -y`
 
-In this project, the JavaScript run by Node will be using `import` instead of
-the old `require()`, so this property must be added to 'package.json':  
+In this project, the JavaScript run by Node will be using `import` instead
+of the old `require()`, so a `"type"` property set to `"module"` must be added
+to 'package.json':  
 `  "type": "module",`
 
 Change the default `"test"` script from:  
@@ -147,64 +244,90 @@ to:
 `    "test": "node scripts/test-all.js"`
 
 Create a directory called 'scripts', and create a placeholder file
-'scripts/test-all.rs':
+'scripts/test-all.js':  
+`code scripts/test-all.js`
 
 ```js
-// scripts/test-all.rs
-console.log('Tests will be run from here');
+// scripts/test-all.js
+
+import { blue } from '../helpers/ansi.js';
+
+console.log(`${blue('TODO')}Tests will be run from here`);
 ```
 
 Check that it's working:  
 `npm test`  
-...you should see `"Tests will be run from here"`
+...you should see `TODO Tests will be run from here`  
+where `TODO` has a blue background.
 
-## Build and test the standalone binary
+### Build and test the standalone binary
 
-Create a directory called 'dist'.
+Create a directory called 'dist', and inside that, create a directory called
+'1-standalone-binary':  
+`mkdir dist`  
+`mkdir dist/1-standalone-binary`
 
-Inside that, create a directory called '1-standalone-binary'.
-
-Next, create the JavaScript file 'scripts/build-1-standalone-binary.js', which
-will compile the standalone binary app:
+Create the JavaScript file 'scripts/build-1-standalone-binary.js', which
+will compile the standalone binary app:  
+`code scripts/build-1-standalone-binary.js`
 
 ```js
 // scripts/build-1-standalone-binary.js
 
-import child_process from 'node:child_process';
+import { execSync } from 'node:child_process';
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { green, red } from '../helpers/ansi.js';
+
+// Get the distribution-folder path, and the compiled binary filename.
+const dir = join('dist', '1-standalone-binary');
+const file = process.platform.slice(0, 3) === 'win' ? 'greet.exe' : 'greet';
 
 try {
-    const result = child_process.execSync(
+    // Delete any files generated during a previous build.
+    'greet|greet.exe|greet.pdb'.split('|').forEach(prevFile => rmSync(
+        join(dir, prevFile),
+        { force: true }, // don't stop if the file doesn't exist
+    ));
+
+    // Compile the binary, and then show an 'OK!' or 'Error!' message.
+    const result = execSync(
         'rustc ' + // the Rust compiler
         'src/main.rs ' + // the main source file
-        '-o dist/1-standalone-binary/greet' // the compiled binary app
+        `-o ${join(dir, file)}` // the compiled binary app
     ).toString();
-    console.log(result || 'rustc succeeded');
-} catch (err) { console.error(err.message); process.exit(1) }
+    console.log(green('OK!') + (result || 'rustc succeeded'));
+} catch (err) { console.error(red('Error!') + '\n', err); process.exit(1) }
 ```
 
 Create another JavaScript file 'scripts/test-1-standalone-binary.js', which will
-run a couple of unit tests on the standalone binary app:
+run a couple of unit tests on the standalone binary app:  
+`code scripts/test-1-standalone-binary.js`
 
 ```js
 // scripts/test-1-standalone-binary.js
 
 import { equal } from 'node:assert';
-import child_process from 'node:child_process';
+import { execSync } from 'node:child_process';
+import { green, red } from '../helpers/ansi.js';
 
+// Get the path to the compiled binary app.
+const path = process.platform.slice(0, 3) === 'win'
+  ? 'dist\\1-standalone-binary\\greet.exe'
+  : './dist/1-standalone-binary/greet'
+
+// Run the tests, and then show a 'Pass!' or 'Fail!' message.
 try {
-    const result1 = child_process.execSync(
-        './dist/1-standalone-binary/greet' // the compiled binary app
-    ).toString();
+    const result1 = execSync(path).toString();
     equal(result1, 'Hello from Rust, standalone binary app!\n');
 
-    const result2 = child_process.execSync(
-        './dist/1-standalone-binary/greet ' +
-        '"console arguments user" extra args'
+    const result2 = execSync(
+        `${path} "console arguments user" extra args`
     ).toString();
     equal(result2, 'Hello from Rust, console arguments user!\n');
 
-    console.log('Both 1-standalone-binary tests passed');
-} catch (err) { console.error(err); process.exit(1) }
+    console.log(green('Pass!') + 'Both 1-standalone-binary tests passed');
+} catch (err) { console.error(red('Fail!') + '\n', err); process.exit(1) }
 ```
 
 Back in 'package.json', add two new scripts above `"test"`:  
@@ -213,19 +336,33 @@ Back in 'package.json', add two new scripts above `"test"`:
 
 Compile the standalone binary app:  
 `npm run build:1`  
-...you should see `"rustc succeeded"`
+...you should see `OK! rustc succeeded`
 
-Run the unit tests on it:  
+If you're running PowerShell in Windows, the 'dist/1-standalone-binary/'
+directory should now contain 'greet.exe' and 'greet.pdb'. The .pdb file just
+contains debug info generated while compiling and linking 'greet.exe'. Check
+that you can run the Rust binary 'greet.exe' from the command line:  
+`dist\1-standalone-binary\greet.exe "quick check"`
+
+If you're on macOS, Linux or Windows WSL, the 'dist/1-standalone-binary/'
+directory should just contain a Rust binary with no extension named 'greet'.
+Check that it runs:  
+`./dist/1-standalone-binary/greet "quick check"`
+
+Whichever platform you're on, you should see `Hello from Rust, quick check!`
+
+Run the unit tests:  
 `npm run test:1`  
-...you should see `"Both 1-standalone-binary tests passed"`
+...you should see `Pass! Both 1-standalone-binary tests passed`
 
-## Create and test the Node.js 'wrapper' app
-
-Create a second directory inside 'dist', called '2-node-wrapper'.
+### Create and test the Node.js 'wrapper' app
 
 There's no build step this time, because the Node.js 'wrapper' app just makes
 use of the [compiled standalone binary.](#build-and-test-the-standalone-binary)
-The Node wrapper app is divided into two Node files:
+
+The Node wrapper app is divided into two Node files. Create a second directory
+inside 'dist' called '2-node-wrapper', and make the 'cli.js' and 'wrapper.js':  
+`code dist/2-node-wrapper/cli.js dist/2-node-wrapper/wrapper.js`
 
 ```js
 // dist/2-node-wrapper/cli.js
@@ -289,9 +426,9 @@ Back in 'package.json', add a new script above `"test"`:
 
 Run the unit tests:  
 `npm run test:2`  
-...you should see `"All four 2-node-wrapper/greet.js tests passed"`
+...you should see `All four 2-node-wrapper/greet.js tests passed`
 
-## Build for the web browser, and test
+### Build for the web browser, and test
 
 Create another directory inside 'dist', called '3-web-browser-wasm'.
 
@@ -489,7 +626,7 @@ The browser should show the test results, and you should see:
 Back on the command line, hold down the 'control' key and press 'c' to stop
 running the `test:3` server.
 
-## Build and test the Node.js WebAssembly app
+### Build and test the Node.js WebAssembly app
 
 Create the fourth output-directory in 'dist', called '4-node-wasm'.
 
@@ -564,12 +701,54 @@ Compile the standalone binary app:
 
 Run the unit tests on it:  
 `npm run test:4`  
-...you should see `"Both 4-node-wasm tests passed"`
+...you should see `Both 4-node-wasm tests passed`
 
-## Combine the three build steps into a single 'build-all.js' file
+### Combine the three build steps into a single 'build-all.js' file
 
-TODO
+Create a new JavaScript file in 'scripts' called 'build-all.js':
 
-## Combine the four unit test files into a single 'test-all.js' file
+```js
+// scripts/build-all.js
 
-TODO
+console.log('Running "./build-1-standalone-binary.js"...');
+await import('./build-1-standalone-binary.js');
+console.log('\nRunning "./build-3-web-browser-wasm.js"...');
+await import('./build-3-web-browser-wasm.js');
+console.log('Running "./build-4-node-wasm.js"...');
+await import('./build-4-node-wasm.js');
+console.log('\x1b[42;30;1m Done! \x1b[0m All three builds succeeded');
+```
+
+Add a new script above `"test"` in 'package.json':  
+`    "build": "node scripts/build-all.js",`
+
+Try out the build-all script:  
+`npm run build`  
+...you should see `Done! All three builds succeeded`
+
+### Combine the four unit test files into a single 'test-all.js' file
+
+Replace 'scripts/test-all.js' with:
+
+```js
+// scripts/test-all.js
+
+console.log('Running "./test-1-standalone-binary.js"...');
+await import('./test-1-standalone-binary.js');
+console.log('\nRunning "./test-2-node-wrapper.js"...');
+await import('./test-2-node-wrapper.js');
+console.log('\nRunning "./test-4-node-wasm.js"...');
+await import('./test-4-node-wasm.js');
+console.log(`
+\n\x1b[42;30;1m Done! \x1b[0m All three command-line tests passed.
+\nRunning "./test-3-web-browser-wasm.js"...\n`);
+import('./test-3-web-browser-wasm.js');
+```
+
+Check that the following script exists in 'package.json':  
+`    "test": "node scripts/test-all.js",`
+
+Try out the test-all script:  
+`npm test`  
+...you should see `Done! All three command-line tests passed`,  
+followed by instructions for manually running the browser tests.
