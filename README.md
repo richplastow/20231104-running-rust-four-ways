@@ -172,7 +172,7 @@ can execute your .js files:
 
 Create a directory called 'src', and create the following three Rust files,
 'src/utils.rs', 'src/lib.rs' and 'src/main.rs':  
-`code src/main.rs src/lib.rs src/utils.rs`
+`code src/main.rs src/lib.rs src/utils.rs # NOTE: spaces do work on PowerShell`
 
 ```rs
 // src/utils.rs
@@ -261,6 +261,9 @@ Check that it's working:
 where `TODO` has a blue background.
 
 ### Build and test the standalone binary
+
+The first way of running Rust is the simplest. It's also the odd one out,
+because the compiled Rust program is run directly, not by JavaScript.
 
 Create a directory called 'dist', and inside that, create a directory called
 '1-standalone-binary':  
@@ -362,7 +365,7 @@ use of the [compiled standalone binary.](#build-and-test-the-standalone-binary)
 
 The Node wrapper app is divided into two Node files. Create a second directory
 inside 'dist' called '2-node-wrapper', and make the 'cli.js' and 'wrapper.js':  
-`code dist/2-node-wrapper/cli.js dist/2-node-wrapper/wrapper.js`
+`code dist/2-node-wrapper/wrapper.js dist/2-node-wrapper/cli.js`
 
 ```js
 // dist/2-node-wrapper/cli.js
@@ -376,6 +379,7 @@ console.log(wrapper(process.argv[2]));
 // dist/2-node-wrapper/wrapper.js
 
 import child_process from 'node:child_process';
+import { red } from '../helpers/ansi.js';
 
 export const wrapper = (text) => {
     try {
@@ -384,7 +388,7 @@ export const wrapper = (text) => {
             `"${text || 'Node.js wrapper app'}"`
         ).toString().trim();
         return result || '[no output]';
-    } catch (err) { console.error(err.message); process.exit(1) }
+    } catch (err) { console.error(red('Error!') + '\n', err); process.exit(1) }
 };
 ```
 
@@ -396,7 +400,7 @@ wrapper.js module, and also run integration tests on the cli.js app:
 
 import { equal } from 'node:assert';
 import child_process from 'node:child_process';
-
+import { green, red } from '../helpers/ansi.js';
 import { wrapper } from '../dist/2-node-wrapper/wrapper.js';
 
 try {
@@ -417,8 +421,8 @@ try {
     ).toString();
     equal(result4, 'Hello from Rust, passed to Node CLI app!\n');
 
-    console.log('All four 2-node-wrapper tests passed');
-} catch (err) { console.error(err); process.exit(1) }
+    console.log(green('Pass!') + 'All four 2-node-wrapper tests passed');
+} catch (err) { console.error(red('Fail!') + '\n', err); process.exit(1) }
 ```
 
 Back in 'package.json', add a new script above `"test"`:  
@@ -426,11 +430,18 @@ Back in 'package.json', add a new script above `"test"`:
 
 Run the unit tests:  
 `npm run test:2`  
-...you should see `All four 2-node-wrapper/greet.js tests passed`
+...you should see `Pass! All four 2-node-wrapper tests passed`
 
 ### Build for the web browser, and test
 
-Create another directory inside 'dist', called '3-web-browser-wasm'.
+To run Rust in a browser, it must be compiled to WebAssembly (wasm). Unlike the
+Rust binary above, WebAssembly code is OS-agnostic - in other words, the same
+.wasm file can run on Linux, macOS and Windows. But a .wasm file compiled for
+the browser cannot be run by Node.js, and a .wasm file compiled for Node.js
+cannot run in a browser.
+
+Create another directory inside 'dist', called '3-web-browser-wasm':  
+`mkdir dist/3-web-browser-wasm`
 
 The `#[wasm_bindgen]` in 'src/lib.rs' means that a 'Cargo.toml' file must be
 created. It has the same content, whether you're targeting `nodejs` or `web`:
@@ -453,22 +464,27 @@ wasm-bindgen = "0.2"
 
 The first time `wasm-pack build ...` is run, a 'Cargo.lock' file will be
 generated alongside 'Cargo.toml', and `wasm-bindgen` and its sub-dependencies
-will be installed in the 'target/' directory.
+will be installed in a new 'target/' directory.
 
 Next, create the JavaScript file 'scripts/build-3-web-browser-wasm.js', which
-will be used to generate a WebAssembly app targeting web browsers:
+will be used to generate a WebAssembly app targeting web browsers:  
+`code scripts/build-3-web-browser-wasm.js`
 
 ```js
 // scripts/build-3-web-browser-wasm.js
 
 import child_process from 'node:child_process';
 import { rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { green, red } from '../helpers/ansi.js';
+
+const outDir = join('dist', '3-web-browser-wasm');
 
 try {
     // Delete any files generated during a previous build.
     '.gitignore|greet_bg.wasm|greet_bg.wasm.d.ts|greet.d.ts|greet.js'
         .split('|').forEach(filename => rmSync(
-            `dist/3-web-browser-wasm/${filename}`,
+            join(outDir, filename),
             { force: true }, // don't stop if the file doesn't exist
         ));
 
@@ -477,22 +493,23 @@ try {
         'wasm-pack build ' + // generate the .js, .ts and .wasm files
         '--target web ' + // set the target environment
         '--no-pack ' + // do not generate a 'package.json' file
-        '--out-dir dist/3-web-browser-wasm/ ' + // the output directory
+        `--out-dir ${outDir}` + // the output directory
         '--out-name greet' // basis for naming the generated files
     ).toString();
-    console.log(result);
-
-} catch (err) { console.error(err.message); process.exit(1) }
+    console.log(green('OK!') + '\n', result);
+} catch (err) { console.error(red('Error!') + '\n', err); process.exit(1) }
 ```
 
 Create another JavaScript file 'scripts/test-3-web-browser-wasm.js', which will
-start a localhost server on port 1234 for testing the app:
+start a localhost server on port 1234 for testing the app:  
+`code scripts/test-3-web-browser-wasm.js`
 
 ```js
 // scripts/test-3-web-browser-wasm.js
 
 import { readFileSync } from 'node:fs';
 import http from 'node:http';
+import { blue, red } from '../helpers/ansi.js';
 
 const indexHtml = `
 <!-- /index.html -->
@@ -562,12 +579,12 @@ ${dataUrl}
 
     document.body.className = ok1 && ok2 && ok3 && ok4 ? 'pass' : 'fail';
     if (ok1 && ok2 && ok3 && ok4)
-      log('\\n\\nAll four 3-web-browser-wasm tests passed');
+      log('\\n\\nPass! All four 3-web-browser-wasm tests passed');
 
   } catch (err) {
-    log(\`\\n\\nError:\\n\${err.message}\\n(See browser console)\`);
+    log(\`\\n\\nError!\\n\${err.message}\\n(See browser console)\`);
     document.body.className = 'fail';
-    console.error(err);
+    console.error('Error!', err);
   }
 })();
 `;
@@ -601,51 +618,57 @@ try {
                 respond(res, 200, 'text/plain', 'Not Found');
         }
     }).listen(1234);
-    console.log('Open http://localhost:1234/ to run web browser wasm tests.');
-    console.log('Press ctrl-c to close this server.');
-} catch (err) { console.error(err); process.exit(1) }
+    console.log(blue('Ready!')
+        + '\nOpen http://localhost:1234/ to run web browser wasm tests.'
+        + '\nPress ctrl-c to close this server.');
+} catch (err) { console.error(red('Error!') + '\n', err); process.exit(1) }
 ```
 
 Back in 'package.json', add two new scripts above `"test"`:  
 `    "build:3": "node scripts/build-3-web-browser-wasm.js",`  
 `    "test:3": "node scripts/test-3-web-browser-wasm.js",`
 
-Compile the web browser wasm app:  
+Compile the web browser WebAssembly app:  
 `npm run build:3`  
-...you should see `[INFO]: Your wasm pkg is ready ...`
+...you should see:  
+`OK!`  
+`[INFO]: Your wasm pkg is ready ...`
 
 Start the local server:  
 `npm run test:3`  
 ...you should see:  
+`Ready!`  
 `Open http://localhost:1234/ to run web browser wasm tests.`  
 `Press ctrl-c to close this server.`
 
 The browser should show the test results, and you should see:  
-`All four 3-web-browser-wasm tests passed`
+`Pass! All four 3-web-browser-wasm tests passed`
 
 Back on the command line, hold down the 'control' key and press 'c' to stop
 running the `test:3` server.
 
 ### Build and test the Node.js WebAssembly app
 
-Create the fourth output-directory in 'dist', called '4-node-wasm'.
-
-Then create 'scripts/build-4-node-wasm.js', which will be used to generate
-a WebAssembly app targeting Node.js:
+Create the fourth output-directory in 'dist', called '4-node-wasm', and
+then create 'scripts/build-4-node-wasm.js', which will be used to generate
+a WebAssembly app targeting Node.js:  
+`code scripts/build-4-node-wasm.js`
 
 ```js
 // scripts/build-4-node-wasm.js
 
 import child_process from 'node:child_process';
 import { renameSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { green, red } from '../helpers/ansi.js';
 
-const outDir = 'dist/4-node-wasm/';
+const outDir = join('dist', '4-node-wasm');
 
 try {
     // Delete any files generated during a previous build.
     '.gitignore|greet_bg.wasm|greet.cjs|greet_bg.wasm.d.ts|greet.d.ts'
         .split('|').forEach(filename => rmSync(
-            `${outDir}${filename}`,
+            join(outDir, filename),
             { force: true }, // don't stop if the file doesn't exist
         ));
 
@@ -657,23 +680,25 @@ try {
         `--out-dir ${outDir} ` + // the output directory
         '--out-name greet' // basis for naming the generated files
     ).toString();
-    console.log(result);
+    console.log(green('OK!') + '\n', result);
 
     // This project has set `"type": "module"` in 'package.json',
     // so rename 'greet.js' (which uses `require()`) to 'greet.cjs'.
     renameSync(`${outDir}greet.js`, `${outDir}greet.cjs`);
 
-} catch (err) { console.error(err.message); process.exit(1) }
+} catch (err) { console.error(red('Error!') + '\n', err); process.exit(1) }
 ```
 
 Create 'scripts/test-4-node-wasm.js', which will run tests on 'greet.cjs'
-and 'greet_bg.wasm':
+and 'greet_bg.wasm':  
+`code scripts/test-4-node-wasm.js`
 
 ```js
 // scripts/test-4-node-wasm.js
 
 import { equal } from 'node:assert';
 import dist from '../dist/4-node-wasm/greet.cjs';
+import { green, red } from '../helpers/ansi.js';
 const { greet } = dist;
 
 try {
@@ -687,17 +712,19 @@ try {
     const result2 = greet('Node.js WebAssembly app');
     equal(result2, 'Hello from Rust, Node.js WebAssembly app!');
 
-    console.log('Both 4-node-wasm tests passed');
-} catch (err) { console.error(err); process.exit(1) }
+    console.log(green('Pass!') + 'Both 4-node-wasm tests passed');
+} catch (err) { console.error(red('Fail!') + '\n', err); process.exit(1) }
 ```
 
 Back in 'package.json', add two new scripts above `"test"`:  
 `    "build:4": "node scripts/build-4-node-wasm.js",`  
 `    "test:4": "node scripts/test-4-node-wasm.js",`
 
-Compile the standalone binary app:  
+Compile the Node.js WebAssembly app:  
 `npm run build:4`  
-...you should see `[INFO]: Your wasm pkg is ready ...`
+...you should see:  
+`OK!`  
+`[INFO]: Your wasm pkg is ready ...`
 
 Run the unit tests on it:  
 `npm run test:4`  
@@ -705,10 +732,13 @@ Run the unit tests on it:
 
 ### Combine the three build steps into a single 'build-all.js' file
 
-Create a new JavaScript file in 'scripts' called 'build-all.js':
+Create a new JavaScript file in 'scripts' called 'build-all.js':  
+`code scripts/build-all.js`
 
 ```js
 // scripts/build-all.js
+
+import { green } from '../helpers/ansi.js';
 
 console.log('Running "./build-1-standalone-binary.js"...');
 await import('./build-1-standalone-binary.js');
@@ -716,7 +746,7 @@ console.log('\nRunning "./build-3-web-browser-wasm.js"...');
 await import('./build-3-web-browser-wasm.js');
 console.log('Running "./build-4-node-wasm.js"...');
 await import('./build-4-node-wasm.js');
-console.log('\x1b[42;30;1m Done! \x1b[0m All three builds succeeded');
+console.log(green('Done!') + 'All three builds succeeded');
 ```
 
 Add a new script above `"test"` in 'package.json':  
@@ -733,6 +763,8 @@ Replace 'scripts/test-all.js' with:
 ```js
 // scripts/test-all.js
 
+import { green } from '../helpers/ansi.js';
+
 console.log('Running "./test-1-standalone-binary.js"...');
 await import('./test-1-standalone-binary.js');
 console.log('\nRunning "./test-2-node-wrapper.js"...');
@@ -740,7 +772,7 @@ await import('./test-2-node-wrapper.js');
 console.log('\nRunning "./test-4-node-wasm.js"...');
 await import('./test-4-node-wasm.js');
 console.log(`
-\n\x1b[42;30;1m Done! \x1b[0m All three command-line tests passed.
+\n${green('Done!')}All three command-line tests passed.
 \nRunning "./test-3-web-browser-wasm.js"...\n`);
 import('./test-3-web-browser-wasm.js');
 ```
