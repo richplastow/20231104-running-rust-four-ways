@@ -128,13 +128,14 @@ understanding of the different ways your JavaScript app can run Rust code.
 ### Start with a simple JavaScript helper
 
 Make a directory to build the example Rust app, and 'change directory' into it:  
-`mkdir ~/example-rust-app`  
-`cd ~/example-rust-app`
+`mkdir ~/example-rust-app; cd ~/example-rust-app`
 
-Assuming you have VS Code installed, use the `code` command followed by a dot to
-launch VS Code and open a new window. Then, still on the command line, use `code`
-followed by a path to create a blank file in a new folder and start editing it:  
-`code . # you may need to click 'Yes, I trust the authors'`  
+Assuming you have VS Code installed, use the `code` command followed by a dot
+`"."` to launch VS Code and open a new window:  
+`code . # you may need to click 'Yes, I trust the authors'`
+
+Then, still on the command line, use `code` followed by a path to create a blank
+file in a new folder and start editing it:  
 `code helpers/ansi.js`
 
 Paste the following JavaScript into the blank 'ansi.js' file:
@@ -201,16 +202,8 @@ where `TODO` has a blue background.
 ### Create the app's source files
 
 Create a directory called 'src', and create the following three Rust files,
-'src/utils.rs', 'src/lib.rs' and 'src/main.rs':  
-`code src/main.rs src/lib.rs src/utils.rs # NOTE: spaces do work on PowerShell`
-
-```rs
-// src/utils.rs
-
-pub fn greet(text: &str) -> String {
-    return format!("Hello from Rust, {}!", text)
-}
-```
+'src/lib.rs', 'src/main.rs' and 'src/utils.rs':  
+`code src/lib.rs src/main.rs src/utils.rs`
 
 ```rs
 // src/lib.rs
@@ -258,6 +251,14 @@ fn main() {
 }
 ```
 
+```rs
+// src/utils.rs
+
+pub fn greet(text: &str) -> String {
+    return format!("Hello from Rust, {}!", text)
+}
+```
+
 ### Build and test the standalone binary
 
 The first way of running Rust is the simplest. It's also the odd one out,
@@ -265,8 +266,7 @@ because the compiled Rust program is run directly, not by JavaScript.
 
 Create a directory called 'dist', and inside that, create a directory called
 '1-standalone-binary':  
-`mkdir dist`  
-`mkdir dist/1-standalone-binary`
+`mkdir dist; mkdir dist/1-standalone-binary`
 
 Create the JavaScript file 'scripts/build-1-standalone-binary.js', which
 will compile the standalone binary app:  
@@ -346,7 +346,7 @@ that you can run the Rust binary 'greet.exe' from the command line:
 `dist\1-standalone-binary\greet.exe "quick check"`
 
 If you're on macOS, Linux or Windows WSL, the 'dist/1-standalone-binary/'
-directory should just contain a Rust binary with no extension named 'greet'.
+directory should just contain a Rust binary with no extension, named 'greet'.
 Check that it runs:  
 `./dist/1-standalone-binary/greet "quick check"`
 
@@ -363,7 +363,7 @@ use of the [compiled standalone binary.](#build-and-test-the-standalone-binary)
 
 The Node wrapper app is divided into two Node files. Create a second directory
 inside 'dist' called '2-node-wrapper', and make the 'cli.js' and 'wrapper.js':  
-`code dist/2-node-wrapper/wrapper.js dist/2-node-wrapper/cli.js`
+`code dist/2-node-wrapper/cli.js dist/2-node-wrapper/wrapper.js`
 
 ```js
 // dist/2-node-wrapper/cli.js
@@ -377,13 +377,17 @@ console.log(wrapper(process.argv[2]));
 // dist/2-node-wrapper/wrapper.js
 
 import child_process from 'node:child_process';
-import { red } from '../helpers/ansi.js';
+import { red } from '../../helpers/ansi.js';
+
+// Get the path to the compiled binary app.
+const path = process.platform.slice(0, 3) === 'win'
+  ? 'dist\\1-standalone-binary\\greet.exe'
+  : './dist/1-standalone-binary/greet'
 
 export const wrapper = (text) => {
     try {
         const result = child_process.execSync(
-            './dist/1-standalone-binary/greet ' + // the compiled binary app
-            `"${text || 'Node.js wrapper app'}"`
+            `${path} "${text || 'Node.js wrapper app'}"`
         ).toString().trim();
         return result || '[no output]';
     } catch (err) { console.error(red('Error!') + '\n', err); process.exit(1) }
@@ -391,7 +395,8 @@ export const wrapper = (text) => {
 ```
 
 Create 'scripts/test-2-node-wrapper.js', which will run unit tests on the
-wrapper.js module, and also run integration tests on the cli.js app:
+wrapper.js module, and also run integration tests on the cli.js app:  
+`code scripts/test-2-node-wrapper.js`
 
 ```js
 // scripts/test-2-node-wrapper.js
