@@ -56,7 +56,7 @@ instructions in the [Linux section](#linux) below. Otherwise, you can use
 PowerShell:
 
 1. Open Windows PowerShell:  
-   Click the Windows icon (usually in the bottom left corner of the screen),
+   Click the 'Start' icon (usually in the bottom left corner of the screen),
    type 'powershell', and click the 'Windows PowerShell' app
 2. Check that Git is installed:  
    `git --version`  
@@ -102,7 +102,7 @@ Install these helpful extensions for developing Rust apps:
 
 TODO more code editors
 
-## Compile the example Rust library, and test it in JavaScript
+## Compile the example Rust app, and test it in JavaScript
 
 For an in-depth look at the different ways that Rust code can be integrated into
 a JavaScript app, jump to the next section, [Recreate this repo, step-by-step.](
@@ -131,8 +131,10 @@ Make a directory to build the example Rust app, and 'change directory' into it:
 `mkdir ~/example-rust-app`  
 `cd ~/example-rust-app`
 
-Assuming you are using VS Code, there's a single command to create a blank file
-in a new folder and start editing it:  
+Assuming you have VS Code installed, use the `code` command followed by a dot to
+launch VS Code and open a new window. Then, still on the command line, use `code`
+followed by a path to create a blank file in a new folder and start editing it:  
+`code . # you may need to click 'Yes, I trust the authors'`  
 `code helpers/ansi.js`
 
 Paste the following JavaScript into the blank 'ansi.js' file:
@@ -163,10 +165,38 @@ the `red` function name should show that VS Code parses the JSDoc comments.
 After saving the file, you should see it appear in your OS's filesystem, and
 also the filesystem tab of VS Code's 'Explorer' sidebar.
 
-Check that a recent enough version of Node.js is installed, and check that it
-can execute your .js files:  
-`node -e "import('./helpers/ansi.js').then(({red})=>console.log(red('A')))"`  
-...you should see a white letter `"A"` on a dark red background.
+### Begin setting up the 'package.json' file
+
+Generate a fairly minimal 'package.json' file:  
+`npm init -y`
+
+In this project, the JavaScript run by Node will be using `import` instead
+of the old `require()`, so a `"type"` property set to `"module"` must be added
+to 'package.json':  
+`  "type": "module",`
+
+Change the default `"test"` script from:  
+`    "test": "echo \"Error: no test specified\" && exit 1"`  
+to:  
+`    "test": "node scripts/test-all.js"`
+
+Create a directory called 'scripts', and create a placeholder file
+'scripts/test-all.js':  
+`code scripts/test-all.js`
+
+```js
+// scripts/test-all.js
+
+import { blue } from '../helpers/ansi.js';
+
+console.log(`${blue('TODO')}Tests will be run from here`);
+```
+
+Check that it's working. This will confirm that a recent enough version of
+Node.js is installed, which has the correct permissions to run your .js files:  
+`npm test`  
+...you should see `TODO Tests will be run from here`  
+where `TODO` has a blue background.
 
 ### Create the app's source files
 
@@ -227,38 +257,6 @@ fn main() {
     println!("{}", greet(&text))
 }
 ```
-
-### Begin setting up the 'package.json' file
-
-Generate a fairly minimal 'package.json' file:  
-`npm init -y`
-
-In this project, the JavaScript run by Node will be using `import` instead
-of the old `require()`, so a `"type"` property set to `"module"` must be added
-to 'package.json':  
-`  "type": "module",`
-
-Change the default `"test"` script from:  
-`    "test": "echo \"Error: no test specified\" && exit 1"`  
-to:  
-`    "test": "node scripts/test-all.js"`
-
-Create a directory called 'scripts', and create a placeholder file
-'scripts/test-all.js':  
-`code scripts/test-all.js`
-
-```js
-// scripts/test-all.js
-
-import { blue } from '../helpers/ansi.js';
-
-console.log(`${blue('TODO')}Tests will be run from here`);
-```
-
-Check that it's working:  
-`npm test`  
-...you should see `TODO Tests will be run from here`  
-where `TODO` has a blue background.
 
 ### Build and test the standalone binary
 
