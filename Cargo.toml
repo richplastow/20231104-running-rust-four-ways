@@ -1,0 +1,13 @@
+# Cargo.toml
+
+[package]
+name = "example-rust-app"
+version = "1.0.0"
+authors = ["Your Name <your@name.com>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"

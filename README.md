@@ -62,7 +62,7 @@ instructions in the ['Set up Linux and macOS' section](
    type 'powershell', and click the 'Windows PowerShell' app
 2. Check that Node.js is installed:  
    `node --version`  
-   If you see `node : The term 'node' is not recognized ...`  
+   If you see `The term 'node' is not recognized ...`  
    instead of installing Node directly, [install `nvm-windows`
    ](https://github.com/coreybutler/nvm-windows#installation--upgrades) and:  
    `nvm install lts`  
@@ -74,13 +74,13 @@ instructions in the ['Set up Linux and macOS' section](
    This should have been installed at the same time as Node
 4. Check that the Rust compiler and associated utilities are installed:  
    `rustup --version`  
-   If you see `rustup : The term 'rustup' is not recognized ...`  
+   If you see `The term 'rustup' is not recognized ...`  
    [install `rustup`,](https://www.rust-lang.org/tools/install) and (possibly
    after installing Visual Studio for the C++ linker and libraries) choose:  
    `1) Proceed with installation (default)`
 5. Check that the `wasm-pack` is installed:  
    `wasm-pack --version`  
-   If you see `wasm-pack : The term 'wasm-pack' is not recognized ...`  
+   If you see `The term 'wasm-pack' is not recognized ...`  
    [install `wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
 
 ## Set up your code editor
