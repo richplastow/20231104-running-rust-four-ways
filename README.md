@@ -447,7 +447,8 @@ Create another directory inside 'dist', called '3-web-browser-wasm':
 `mkdir dist/3-web-browser-wasm`
 
 The `#[wasm_bindgen]` in 'src/lib.rs' means that a 'Cargo.toml' file must be
-created. It has the same content, whether you're targeting `nodejs` or `web`:
+created. It has the same content, whether you're targeting `nodejs` or `web`:  
+`code Cargo.toml`
 
 ```toml
 # Cargo.toml
@@ -496,7 +497,7 @@ try {
         'wasm-pack build ' + // generate the .js, .ts and .wasm files
         '--target web ' + // set the target environment
         '--no-pack ' + // do not generate a 'package.json' file
-        `--out-dir ${outDir}` + // the output directory
+        `--out-dir ${outDir} ` + // the output directory
         '--out-name greet' // basis for naming the generated files
     ).toString();
     console.log(green('OK!') + '\n', result);
@@ -633,9 +634,8 @@ Back in 'package.json', add two new scripts above `"test"`:
 
 Compile the web browser WebAssembly app:  
 `npm run build:3`  
-...you should see:  
-`OK!`  
-`[INFO]: Your wasm pkg is ready ...`
+...it may seem to freeze the first time it's run, but you should eventually see:  
+`OK!`
 
 Start the local server:  
 `npm run test:3`  
@@ -687,7 +687,7 @@ try {
 
     // This project has set `"type": "module"` in 'package.json',
     // so rename 'greet.js' (which uses `require()`) to 'greet.cjs'.
-    renameSync(`${outDir}greet.js`, `${outDir}greet.cjs`);
+    renameSync(join(outDir, 'greet.js'), join(outDir, 'greet.cjs'));
 
 } catch (err) { console.error(red('Error!') + '\n', err); process.exit(1) }
 ```
@@ -726,12 +726,11 @@ Back in 'package.json', add two new scripts above `"test"`:
 Compile the Node.js WebAssembly app:  
 `npm run build:4`  
 ...you should see:  
-`OK!`  
-`[INFO]: Your wasm pkg is ready ...`
+`OK!`
 
 Run the unit tests on it:  
 `npm run test:4`  
-...you should see `Both 4-node-wasm tests passed`
+...you should see `Pass! Both 4-node-wasm tests passed`
 
 ### Combine the three build steps into a single 'build-all.js' file
 
