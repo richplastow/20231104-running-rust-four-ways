@@ -13,56 +13,54 @@ After completing the steps below, you'll be able to run a Rust app:
 
 __Confirmed to work on:__
 
-- macOS Monterey 12.6.1
-- Windows 11
-- TODO Linux
+- macOS Monterey
+- Windows 11 PowerShell
+- Windows Subsystem for Linux (wsl)
 
 ## Set up your machine
 
-### macOS
+### Set up Linux and macOS
 
 1. Open the Terminal:  
-   From the Finder, command-shift-u, type 'term' to select Terminal, command-o
-   to open it
-2. Check that Git is installed:  
-   `git --version`  
-   If you see `command not found: git`  
-   install it from [git-scm.com.](https://git-scm.com/download/mac)
-3. Check that Node.js is installed:  
+   Most Linux let you open the Terminal by pressing control-alt-t.  
+   On macOS, from the Finder, command-shift-u, type 'term' to select Terminal,
+   command-o to open it.
+2. Check that Node.js is installed:  
    `node --version`  
-   If you see `command not found: node`  
+   If you see `command not found`  
    instead of installing Node directly,
    [install `nvm`](https://github.com/nvm-sh/nvm#installing-and-updating) and:  
    `nvm install --lts`  
    After that, `node --version` should show the current 'long term support'
    version of Node
-4. Check that NPM is installed:  
+3. Check that NPM is installed:  
    `npm --version`  
    This should have been installed at the same time as Node
-5. Check that the Rust compiler and associated utilities are installed:  
+4. Check that the Rust compiler and associated utilities are installed:  
    `rustup --version`  
-   If you see `command not found: rustup`  
+   If you see `command not found`  
    [install `rustup`,](https://www.rust-lang.org/tools/install) and choose:  
    `1) Proceed with installation (default)`
-6. Check that the `wasm-pack` is installed:  
+5. Check that the `wasm-pack` is installed:  
    `wasm-pack --version`  
-   If you see `command not found: wasm-pack`  
+   If you see `command not found`  
    [install `wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
+6. On Linux, check that `cc` is installed (this step is not needed for macOS):  
+   `cc --version`  
+   If you see `Command 'cc' not found`:  
+   `sudo apt-get update # enter your admin password, wait for 'Done'`  
+   `sudo apt install gcc # then press Return at the prompt`  
 
-### Windows
+### Set up Windows
 
 If you would prefer to use 'Windows Subsystem for Linux' (wsl), follow the
-instructions in the [Linux section](#linux) below. Otherwise, you can use
-PowerShell:
+instructions in the ['Set up Linux and macOS' section](
+#set-up-linux-and-macos) above. Otherwise, you can use PowerShell:
 
 1. Open Windows PowerShell:  
    Click the 'Start' icon (usually in the bottom left corner of the screen),
    type 'powershell', and click the 'Windows PowerShell' app
-2. Check that Git is installed:  
-   `git --version`  
-   If you see `git : The term 'git' is not recognized ...`  
-   install it from [git-scm.com.](https://git-scm.com/download/win)
-3. Check that Node.js is installed:  
+2. Check that Node.js is installed:  
    `node --version`  
    If you see `node : The term 'node' is not recognized ...`  
    instead of installing Node directly, [install `nvm-windows`
@@ -71,29 +69,25 @@ PowerShell:
    `nvm use lts`  
    After that, `node --version` should show the current 'long term support'
    version of Node
-4. Check that NPM is installed:  
+3. Check that NPM is installed:  
    `npm --version`  
    This should have been installed at the same time as Node
-5. Check that the Rust compiler and associated utilities are installed:  
+4. Check that the Rust compiler and associated utilities are installed:  
    `rustup --version`  
    If you see `rustup : The term 'rustup' is not recognized ...`  
    [install `rustup`,](https://www.rust-lang.org/tools/install) and (possibly
    after installing Visual Studio for the C++ linker and libraries) choose:  
    `1) Proceed with installation (default)`
-6. Check that the `wasm-pack` is installed:  
+5. Check that the `wasm-pack` is installed:  
    `wasm-pack --version`  
    If you see `wasm-pack : The term 'wasm-pack' is not recognized ...`  
    [install `wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
-
-### Linux
-
-TODO
 
 ## Set up your code editor
 
 ### VS Code
 
-Install these helpful extensions for developing Rust apps:
+Install these two helpful extensions for developing Rust apps:
 
 1. [rust-analyzer v0.3.1705
    ](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
@@ -173,7 +167,12 @@ Generate a fairly minimal 'package.json' file:
 
 In this project, the JavaScript run by Node will be using `import` instead
 of the old `require()`, so a `"type"` property set to `"module"` must be added
-to 'package.json':  
+to 'package.json'.
+
+Open the newly-created 'package.json' file in VS Code:  
+`code package.json`
+
+Replace the line `"main": "index.js",` (which is not needed) with:  
 `  "type": "module",`
 
 Change the default `"test"` script from:  
