@@ -1,8 +1,11 @@
 # Running Rust Four Ways
 
-__A minimal example Rust app, that can be run in four different ways.__
+**A minimal example Rust app, that can be run in four different ways**
 
-__4th November 2023__
+- Version: 1.0.0
+- Created: 4th November 2023 by Rich Plastow
+- Updated: 7th June 2026 by Rich Plastow
+- GitHub: <https://github.com/richplastow/20231104-running-rust-four-ways>
 
 After completing the steps below, you'll be able to run a Rust app:
 
@@ -11,9 +14,10 @@ After completing the steps below, you'll be able to run a Rust app:
 3. In a web browser, using Rust compiled to WebAssembly (wasm)
 4. In Node.js again, this time using WebAssembly
 
-__Confirmed to work on:__
+**Confirmed to work on:**
 
-- macOS Monterey
+- macOS Tahoe (M4)
+- macOS Monterey (Intel)
 - Windows 11 PowerShell
 - Windows Subsystem for Linux (wsl)
 
@@ -21,31 +25,34 @@ __Confirmed to work on:__
 
 ### Set up Linux and macOS
 
-1. Open the Terminal:  
+1. **Open the Terminal:**  
    Most Linux let you open the Terminal by pressing control-alt-t.  
-   On macOS, from the Finder, command-shift-u, type 'term' to select Terminal,
-   command-o to open it.
-2. Check that Node.js is installed:  
+   On macOS, command-space to open Spotlight Search, type 'term'
+   until you see 'Terminal.app' selected, then press Enter or Return to open it.
+2. **Check that Node.js is installed:**  
    `node --version`  
    If you see `command not found`  
    instead of installing Node directly,
    [install `nvm`](https://github.com/nvm-sh/nvm#installing-and-updating) and:  
    `nvm install --lts`  
    After that, `node --version` should show the current 'long term support'
-   version of Node
-3. Check that NPM is installed:  
+   version of Node.
+3. **Check that NPM is installed:**  
    `npm --version`  
-   This should have been installed at the same time as Node
-4. Check that the Rust compiler and associated utilities are installed:  
+   This should have been installed at the same time as Node.
+4. **Check that the Rust compiler and associated utilities are installed:**  
    `rustup --version`  
    If you see `command not found`  
    [install `rustup`,](https://www.rust-lang.org/tools/install) and choose:  
-   `1) Proceed with installation (default)`
-5. Check that the `wasm-pack` is installed:  
+   `1) Proceed with standard installation (default - just press enter)`  
+   After it installs, run `. "$HOME/.cargo/env"` (note the leading dot)  
+   and then `rustup --version; cargo --version` to check they installed.
+5. **Check that `wasm-pack` is installed:**  
    `wasm-pack --version`  
-   If you see `command not found`  
-   [install `wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
-6. On Linux, check that `cc` is installed (this step is not needed for macOS):  
+   If you see `command not found`, install `wasm-pack` using Rust and Cargo:  
+   `cargo install wasm-pack`
+   After it installs, `wasm-pack --version` should immediately show the version.
+6. **On Linux, check that `cc` is installed** (this is not needed for macOS):  
    `cc --version`  
    If you see `Command 'cc' not found`:  
    `sudo apt-get update # enter your admin password, wait for 'Done'`  
@@ -57,10 +64,10 @@ If you would prefer to use 'Windows Subsystem for Linux' (wsl), follow the
 instructions in the ['Set up Linux and macOS' section](
 #set-up-linux-and-macos) above. Otherwise, you can use PowerShell:
 
-1. Open Windows PowerShell:  
+1. **Open Windows PowerShell:**  
    Click the 'Start' icon (usually in the bottom left corner of the screen),
    type 'powershell', and click the 'Windows PowerShell' app
-2. Check that Node.js is installed:  
+2. **Check that Node.js is installed:**  
    `node --version`  
    If you see `The term 'node' is not recognized ...`  
    instead of installing Node directly, [install `nvm-windows`
@@ -69,19 +76,20 @@ instructions in the ['Set up Linux and macOS' section](
    `nvm use lts`  
    After that, `node --version` should show the current 'long term support'
    version of Node
-3. Check that NPM is installed:  
+3. **Check that NPM is installed:**  
    `npm --version`  
    This should have been installed at the same time as Node
-4. Check that the Rust compiler and associated utilities are installed:  
+4. **Check that the Rust compiler and associated utilities are installed:**  
    `rustup --version`  
    If you see `The term 'rustup' is not recognized ...`  
    [install `rustup`,](https://www.rust-lang.org/tools/install) and (possibly
    after installing Visual Studio for the C++ linker and libraries) choose:  
    `1) Proceed with installation (default)`
-5. Check that the `wasm-pack` is installed:  
+5. **Check that the `wasm-pack` is installed:**  
    `wasm-pack --version`  
    If you see `The term 'wasm-pack' is not recognized ...`  
    [install `wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
+   **TODO update this, probably use `cargo install wasm-pack`, link is dead in June 2026**
 
 ## Set up your code editor
 
@@ -102,11 +110,13 @@ For an in-depth look at the different ways that Rust code can be integrated into
 a JavaScript app, jump to the next section, [Recreate this repo, step-by-step.](
 #recreate-this-repo-step-by-step)
 
-But if that's [tl;dr,](https://merriam-webster.com/dictionary/TL%3BDR) or if you
-just want to check that everything's working:
+But if that's TL;DR, or if you just want to check that everything's working:
 
 `npm run build`  
 ...you should see `Done! All three builds succeeded`
+
+In your Terminal, run `./dist/1-standalone-binary/greet`. You should see:  
+`Hello from Rust, standalone binary app!`
 
 Run the test-all script:  
 `npm test`  
